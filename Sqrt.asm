@@ -4,9 +4,9 @@
 // Estrategia: Resta sucesiva de numeros impares (1, 3, 5...) hasta que el residuo sea negativo.
 // El valor de RAM[0] se preserva intacto usando una variable temporal.
 
-// ==========================================
+
 // DEFINICION DE VARIABLES E INICIALIZACION
-// ==========================================
+
 
     @R0
     D=M
@@ -19,9 +19,9 @@
     @oddNum
     M=1         // oddNum = 1 (El primer numero impar a restar)
 
-// ==========================================
+
 // BUCLE PRINCIPAL DE CALCULO
-// ==========================================
+
 (LOOP_START)
     // Verificamos si (tempN - oddNum) < 0
     @tempN
@@ -52,9 +52,8 @@
     @LOOP_START
     0;JMP
 
-// ==========================================
 // FINALIZACION Y GUARDADO
-// ==========================================
+
 (END_CALC)
     // Pasamos el resultado final a RAM[1]
     @count

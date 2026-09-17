@@ -9,13 +9,13 @@
 
 ## Descripción del Proyecto
 
-Este repositorio contiene la solución técnica al segundo parcial práctico de la asignatura. El objetivo principal es demostrar el dominio sobre la arquitectura del computador Hack y su repertorio de instrucciones en lenguaje ensamblador (`.asm`), abordando dos problemas clásicos de bajo nivel: operaciones aritméticas complejas sin hardware dedicado y manipulación de Entrada/Salida (I/O) mapeada en memoria.
+Este repositorio contiene la solución técnica al segundo parcial práctico de la asignatura. El objetivo principal es demostrar el dominio sobre la arquitectura del computador Hack y su repertorio de instrucciones en lenguaje ensamblador (`.asm`), abordando dos problemas clásicos de bajo nivel: operaciones aritméticas complejas sin hardware dedicado y manipulación avanzada de Entrada/Salida (I/O) mapeada en memoria mediante un terminal de texto.
 
 ---
 
 ## 1. Módulo Matemático: `Sqrt.asm`
 
-Este programa calcula la parte entera de la raíz cuadrada de un número entero positivo ($N \ge 0$).
+Este programa calcula la parte entera de la raíz cuadrada de un número entero positivo (N mayor o igual a cero).
 
 ### Flujo de Ejecución y Algoritmo
 
@@ -33,28 +33,27 @@ Debido a que la ALU (Unidad Lógico Aritmética) del sistema Hack no posee opera
 
 ---
 
-## 2. Módulo de Gráficos e I/O: `GlyphMatrix.asm`
+## 2. Módulo de Gráficos e I/O Continua: `GlyphMatrix.asm`
 
-Este programa gestiona la interacción en tiempo real con el usuario mediante un ciclo infinito de *Polling* (Sondeo) sobre el teclado, dibujando directamente en la memoria de video (framebuffer) patrones de 32x32 píxeles.
+Este programa gestiona la interacción en tiempo real con el usuario mediante un ciclo infinito de *Polling* (sondeo) sobre el teclado. Como requerimiento avanzado (Punto 3 extra), el sistema opera como un **Terminal de Texto Continuo**, dibujando patrones de 32x32 píxeles y gestionando dinámicamente un cursor de hardware.
 
-### Iniciales y Asignación
+### Teclas Asignadas
 
-Al tratarse de una entrega individual, se aplicó la regla de alternancia dictada en la rúbrica utilizando el primer nombre y el primer apellido del autor. Adicionalmente, se integraron letras extra para demostrar el control sobre los saltos condicionales y el mapeo gráfico:
+*   **Caracteres de dibujo:** `A` (Alejandro), `R` (Restrepo), y `O` (Osorio).
+*   **Retroceso (Backspace):** `Espacio` (ASCII 32). Borra el último carácter ingresado y retrocede el cursor.
+*   **Limpieza de Pantalla (Clear):** `C` (ASCII 67). Formatea el lienzo completo y reinicia el sistema.
 
-*   **Teclas activas:** `A`, `R`, `O`, `S`, `G`.
-*   **Tecla de limpieza:** `Espacio` (ASCII 32).
+### Arquitectura y Lógica de Hardware
 
-### Arquitectura del Código
-
-1. **Sondeo Ininterrumpido (`MAIN_LOOP`):** El código interroga constantemente el registro `RAM[24576]` (Teclado). Al capturar un valor, realiza una serie de restas sucesivas para identificar el código ASCII.
-2. **Escritura en Pantalla (`DRAW_...`):** Si se detecta un *hit* con alguna letra registrada, el flujo de ejecución salta a su subrutina específica. El programa utiliza un puntero (alojado en `R0`) configurado en la dirección base de `SCREEN` (16384). El dibujo se realiza inyectando patrones hexadecimales precalculados en palabras de 16 bits, avanzando 32 registros para saltar a la siguiente fila de la pantalla.
-3. **Rutina de Limpieza (`CLEAR_MATRIX`):** Se diseñó un bucle compacto de 32 iteraciones controlado por el registro `R1`. Esta rutina inyecta ceros lógicos en el bloque de memoria gráfica para borrar cualquier glifo remanente y restaurar el lienzo a su estado inicial.
-4. **Optimización de Instrucciones tipo A:** A nivel de diseño, los mapas de bits se estructuraron espacialmente para evitar valores hexadecimales que requirieran encender el bit 15 (valores mayores a 32767). Esto eliminó la necesidad de rutinas complejas de pre-cálculo y máscaras a nivel de bits, reduciendo la carga computacional de forma drástica.
+1. **Sondeo Ininterrumpido y Anti-Rebote (Debounce):** El código interroga el registro `RAM[24576]`. Para evitar múltiples impresiones accidentales dada la alta velocidad de reloj del emulador, se implementó una estricta subrutina `WAIT_RELEASE` que pausa la ejecución gráfica hasta que el usuario libere físicamente la tecla.
+2. **Cursor Dinámico y Salto de Línea (Wrap-around):** En lugar de escribir en coordenadas estáticas, se utiliza un puntero en memoria gráfica. La pantalla aloja una grilla estricta de 16x8 caracteres. Al alcanzar la columna 16, el sistema calcula matemáticamente un desplazamiento del puntero para ejecutar un salto de línea (retorno de carro) automático y fluido.
+3. **Bloqueo por Pantalla Llena (Halt):** Un contador de control monitorea la ocupación del *framebuffer*. Al renderizar el carácter número 128 (renglón 8 completo), el sistema bloquea el ingreso de nuevos glifos para prevenir desbordamientos de memoria hacia el teclado u otros registros críticos.
+4. **Retroceso Inteligente (Backspace):** El algoritmo de la barra espaciadora no solo limpia el bloque de 32x32 ceros, sino que recalcula el cursor a la inversa. Si el retroceso ocurre en el primer carácter de una línea, el algoritmo procesa un salto de línea en reversa hacia el renglón superior.
+5. **Rutina de Limpieza (`CLEAR_MATRIX`):** Mediante la tecla `C`, el sistema inyecta ceros lógicos en los 8192 registros del bloque `SCREEN`, borrando cualquier glifo remanente, reseteando los contadores de filas y devolviendo el cursor a su estado inicial. 
 
 ### Cómo Probarlo
 1. Cargue el archivo `GlyphMatrix.asm` en el **CPU Emulator**.
-2. **Importante:** Configure la simulación en modo acelerado ajustando `Animate` en **No Animation** y la barra de velocidad en **Fast**. El renderizado gráfico en Java causa latencia severa si se deja activado el *Program flow*.
-3. Ejecute el programa.
-4. Haga clic sobre la representación del teclado en la interfaz del emulador.
-5. Ingrese las teclas asignadas (asegúrese de utilizar mayúsculas, ej: `Shift + A`) para renderizar los glifos.
-6. Presione la barra espaciadora para ejecutar la rutina de limpieza.
+2. **Importante:** Configure la simulación ajustando `Animate` en **No Animation** y la barra de velocidad en **Fast**. 
+3. Ejecute el programa e ingrese múltiples letras para ver el comportamiento continuo y los saltos de línea.
+4. Presione espacio en distintos puntos para validar el retroceso dinámico del puntero.
+5. Llene la pantalla por completo para verificar el bloqueo de memoria, y utilice la tecla `C` mayúscula para formatear el panel.
